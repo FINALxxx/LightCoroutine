@@ -5,6 +5,7 @@
 1. 半有栈协程库：复杂度和灵活度介于有栈协程、无栈协程之间，可以提供比有栈协程更高的性能，也能在协程中使用无栈协程不能使用的局部变量
 2. 本项目使用了LabelPointer、ComputedGoto功能，这些功能是GCC的非标准扩展，因此代码必须使用GCC或兼容的编译器编译
 3. 局部变量栈使用数组创建，因此能够支持无malloc/free的特殊场景
+4. 项目内部使用了resume表示就绪态、suspend表示阻塞态，这只是因为作者不想重构变量名导致的（鉴定为懒）
 
 ## 使用语法
 该协程库可以设置是否启用局部变量栈，以在性能-灵活度之间进行tradeoff
@@ -12,7 +13,7 @@
 ```c
 #define USE_IDLE_TASK  // 启用空闲任务
 #define MAX_TASK_NUM 10 // 设置非空闲的任务数量
-#define EXEC_WAIT_POLICY (resume_cnt <= suspend_cnt) // 调度器执行wait任务的策略（当wait任务不满足该策略时，不会执行以提高性能）
+#define EXEC_WAIT_POLICY (resume_cnt <= suspend_cnt) // 调度器进入阻塞态任务的策略（当wait任务不满足该策略时，不会进入任务以提高性能）
 
 #define USE_CTX  // 启用局部变量栈
 #define TASK_CTX_SIZE 64 // 设置栈中局部变量的个数（每一个变量都固定为uint32_t）
@@ -60,9 +61,9 @@
 - 前提：启用USE_CTX
 - 兼容性：有栈语法包含了所有的无栈语法，启用USE_CTX时不能执行无栈语法
 - 增删任务
-    - create_task()：将任务标记为resume=1,suspend=0(运行态)，并创建局部变量栈，然后返回对应只读的任务handler
+    - create_task()：将任务标记为resume=1,suspend=0(就绪态)，并创建局部变量栈，然后返回对应只读的任务handler
     - delete_task()：将任务标记为resume=0,suspend=0(删除态)
-    - resume_task()：将任务标记为resume=1,suspend=0(运行态)
+    - resume_task()：将任务标记为resume=1,suspend=0(就绪态)
     - suspend_task()：将任务标记为resume=0,suspend=1(挂起态)
 - 任务函数框架
     ```c
@@ -100,7 +101,20 @@
         TASK_END(t);
     }
     ```
+### 启动调度器
+- 创建任务应在启动调度器之前进行
+- 主动关闭调度器是UB行为
+- 启动调度器语法
+    - task_scheduler(-1)：启动调度器，并永久执行，不会关闭调度器
+    - task_scheduler(round)：启动调度器，并执行round轮调度，然后会自动关闭调度器
+- 调度器策略
+    - 使用无时间片的Round-Robin调度，因此一个任务不能占用CPU过久
+    - 调度器总是会执行处于resume态(就绪态)的任务
+    - 调度器会自动跳过处于suspend态(阻塞态)的任务，除非任务满足EXEC_WAIT_POLICY策略
+    - **进入**suspend态任务不代表**执行**suspend态任务，进入它只是为了再次考察内部的等待条件是否满足
+
 
 ## 注意事项
 1. 在设计协程时需要规避死锁（互斥条件、请求并保持、不可剥夺、循环等待）
 2. 空闲任务可以统计调度器中各运行状态的任务数，以便于调试
+3. 若任务需要永久执行，可以在TASK_BEGIN-TASK_END之间使用while(1)，但不要在TASK_END之后使用while(1)
