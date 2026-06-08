@@ -4,7 +4,11 @@
 #define CONCAT(a, b) a##b
 #define LABEL(line) CONCAT(L, line)
 
-#define TASK_END(t)  (t)->resume_point = NULL
+#define TASK_END(t)                                    \
+    do{                                                \
+        (t)->resume_point = NULL;                      \
+        delete_task(t);                                \
+    }while(0);                                         \
 
 #ifdef USE_CTX
 #define TASK_BEGIN(t)                                  \
