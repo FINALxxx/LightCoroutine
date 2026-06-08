@@ -1,6 +1,8 @@
 #ifndef _YIELD_H_
 #define _YIELD_H_
 
+#include "conf.h"
+
 #define CONCAT(a, b) a##b
 #define LABEL(line) CONCAT(L, line)
 
