@@ -5,13 +5,11 @@
 int sigs = 0x00;
 task_t handlerA;
 task_t handlerB;
-// task_t handlerC;
+task_t handlerC;
 
 
 void taskA(task_t* t){
-    LOCAL(
-        uint32_t unused[TASK_CTX_SIZE];
-    );
+    LOCAL();
 
     TASK_BEGIN(t);
     sigs = 0x00;
@@ -30,9 +28,7 @@ void taskA(task_t* t){
 }
 
 void taskB(task_t* t){
-    LOCAL(
-        uint32_t unused[TASK_CTX_SIZE];
-    );
+    LOCAL();
 
     TASK_BEGIN(t);
     sigs = 0x00;
@@ -50,26 +46,25 @@ void taskB(task_t* t){
     TASK_END(t);
 }
 
-// void taskC(task_t* t){
-    // LOCAL(
-    //     uint32_t a;
-    //     uint32_t b;
-    //     uint32_t unused[TASK_CTX_SIZE-2];
-    // );
+void taskC(task_t* t){
+    LOCAL(
+        uint32_t a;
+        uint32_t b;
+    );
 
-//     TASK_BEGIN(t);
-//     local.a = 1;
-//     local.b = 2;
-//     TASK_YIELD(t);
-//     printf("log=%d,%d\n", local.a, local.b);
+    TASK_BEGIN(t);
+    local.a = 1;
+    local.b = 2;
+    TASK_YIELD(t);
+    printf("log=%d,%d\n", local.a, local.b);
 
-//     TASK_END(t);
-// }
+    TASK_END(t);
+}
 
 int main(){
     handlerA = create_task(0, taskA, NULL);
     handlerB = create_task(1, taskB, NULL);
-    // handlerC = create_task(2, taskC, NULL);
+    handlerC = create_task(2, taskC, NULL);
     task_scheduler(15);
     return 0;
 }
