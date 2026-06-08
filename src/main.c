@@ -1,62 +1,77 @@
 #include "coroutine.h"
 #include "context.h"
-// pesudo_multi_tasks
 
-int sigs = 0x00;
+#define INITNUM 10
 task_t handlerA;
 task_t handlerB;
 task_t handlerC;
 
+// 全局信号
+uint32_t spareArea = INITNUM;
+uint32_t produceCnt = 0;
+uint32_t consumeCnt = 0;
 
-void taskA(task_t* t){
+void taskA(task_t* t){ // Producer
     LOCAL();
-
     TASK_BEGIN(t);
-    sigs = 0x00;
-    printf("A: step 1\n");
-    TASK_YIELD(t);
 
-    printf("A: step 2\n");
-    TASK_WAIT(t, (sigs==0x01));
+    spareArea = INITNUM;
+    while(1){
+        printf("A: producing a request.\r\n");
+        TASK_YIELD(t); // 假设外部设备生产一个请求需要一点时间
+        printf("A: produced a request.\r\n");
+        spareArea--;
+        produceCnt++;
+        TASK_WAIT(t, (spareArea > 0));
+    }
 
-    printf("A: step 3\n");
-    TASK_YIELD(t);
-
-    sigs = 0x02;
-    printf(">>>A: done\n");
     TASK_END(t);
 }
 
-void taskB(task_t* t){
+void taskB(task_t* t){ // Consumer
     LOCAL();
-
     TASK_BEGIN(t);
-    sigs = 0x00;
-    printf("B: step 1\n");
-    TASK_YIELD(t);
 
-    printf("B: step 2\n");
-    TASK_WAIT(t, 1);
+    while(1){
+        TASK_WAIT(t, (spareArea < INITNUM));
+        printf("B: consumed a request.\r\n");
+        spareArea++;
+        consumeCnt++;
+    }
 
-    printf("B: step 3\n");
-    TASK_YIELD(t);
-
-    delete_task(&handlerA);
-    printf(">>>B: done\n");
     TASK_END(t);
 }
 
-void taskC(task_t* t){
+void taskC(task_t* t){ // Consumer
     LOCAL(
-        uint32_t a;
-        uint32_t b;
+        uint32_t lastProduceCnt; 
+        uint32_t lastConsumeCnt;
     );
-
     TASK_BEGIN(t);
-    local.a = 1;
-    local.b = 2;
-    TASK_YIELD(t);
-    printf("log=%d,%d\n", local.a, local.b);
+    // 切出函数后不会丢失数据的局部变量
+    local.lastConsumeCnt = 0;
+    local.lastProduceCnt = 0;
+    // 切出函数后会丢失数据的局部临时变量
+    uint32_t newConsumeCnt = 0;
+    uint32_t newProduceCnt = 0;
+    while(1){
+        TASK_WAIT(t, (newConsumeCnt + newProduceCnt > 10), {
+            newConsumeCnt = consumeCnt - local.lastConsumeCnt;
+            newProduceCnt = produceCnt - local.lastProduceCnt;
+        });
+        local.lastConsumeCnt = consumeCnt;
+        local.lastProduceCnt = produceCnt;
+        printf("C: newConsumeCnt + newProduceCnt > 10, stop?\r\n");
+        uint32_t input = 0;
+        if(input){
+            delete_task(&taskA);
+            delete_task(&taskB);
+            printf("C: stopped\r\n");
+            break;
+        }else{
+            printf("C: continue...\r\n");
+        }
+    }
 
     TASK_END(t);
 }
@@ -68,6 +83,3 @@ int main(){
     task_scheduler(15);
     return 0;
 }
-
-
-
