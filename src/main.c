@@ -64,8 +64,8 @@ void taskC(task_t* t){ // Consumer
         printf("C: newConsumeCnt + newProduceCnt > 10, stop?\r\n");
         uint32_t input = 0;
         if(input){
-            delete_task(&taskA);
-            delete_task(&taskB);
+            delete_task(&handlerA);
+            delete_task(&handlerB);
             printf("C: stopped\r\n");
             break;
         }else{
