@@ -44,7 +44,7 @@
         post_true                           \
     }while(0)
 
-#define TASK_YIELD_DETAILED(t, post_true) TASK_YIELD_INNER(t, LABEL(__LINE__), post_true)
+#define TASK_YIELD_DETAILED(t, post) TASK_YIELD_INNER(t, LABEL(__LINE__), post)
 #define TASK_YIELD(t) TASK_YIELD_INNER(t, LABEL(__LINE__), {})
 #define TASK_WAIT_DETAILED(t, pre, cond, post_false, post_true) TASK_WAIT_INNER(t, LABEL(__LINE__), pre, cond, post_false, post_true)
 #define TASK_WAIT(t, cond) TASK_WAIT_INNER(t, LABEL(__LINE__), {}, cond, {}, {})
@@ -84,7 +84,7 @@
     }while(0)
 
 
-#define TASK_YIELD_DETAILED(t, post_true) TASK_YIELD_INNER(t, LABEL(__LINE__), post_true)
+#define TASK_YIELD_DETAILED(t, post) TASK_YIELD_INNER(t, LABEL(__LINE__), post)
 #define TASK_YIELD(t) TASK_YIELD_INNER(t, LABEL(__LINE__), {})
 #define TASK_WAIT_DETAILED(t, pre, cond, post_false, post_true) TASK_WAIT_INNER(t, LABEL(__LINE__), pre, cond, post_false, post_true)
 #define TASK_WAIT(t, cond) TASK_WAIT_INNER(t, LABEL(__LINE__), {}, cond, {}, {})
