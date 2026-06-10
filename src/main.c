@@ -55,12 +55,27 @@ void taskC(task_t* t){ // Consumer
     uint32_t newConsumeCnt = 0;
     uint32_t newProduceCnt = 0;
     while(1){
-        TASK_WAIT(t, (newConsumeCnt + newProduceCnt > 10), {
-            newConsumeCnt = consumeCnt - local.lastConsumeCnt;
-            newProduceCnt = produceCnt - local.lastProduceCnt;
-        });
-        local.lastConsumeCnt = consumeCnt;
-        local.lastProduceCnt = produceCnt;
+        TASK_WAIT_DETAILED(t, 
+            {
+                // the statement at the pre-jugdement
+                newConsumeCnt = consumeCnt - local.lastConsumeCnt;
+                newProduceCnt = produceCnt - local.lastProduceCnt;
+            },
+            (
+                // the condition in the judgement
+                newConsumeCnt + newProduceCnt > 10
+            ),
+            {
+                // the statement at the post-judgement when JUDGEMENT IS FALSE
+            },
+            {
+                // the statement at the post-judgement when JUDGEMENT IS TRUE
+                local.lastConsumeCnt = consumeCnt;
+                local.lastProduceCnt = produceCnt;
+            }
+        );
+
+        // the statement at the post-judgement when JUDGEMENT IS TRUE
         printf("C: newConsumeCnt + newProduceCnt > 10, stop?\r\n");
         uint32_t input = 0;
         if(input){
